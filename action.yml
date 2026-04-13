@@ -1,0 +1,37 @@
+name: 'W3 CoW Swap Action'
+description: 'MEV-protected swaps via CoW Protocol batch auctions'
+author: 'w3-io'
+
+inputs:
+  command:
+    description: 'Operation to perform (quote, get-order, get-trades)'
+    required: true
+  chain:
+    description: 'Target chain (ethereum, gnosis, arbitrum, base, sepolia)'
+    required: true
+  sell-token:
+    description: 'Token to sell (address or "ETH"/"native" for the native token)'
+    required: false
+  buy-token:
+    description: 'Token to buy (address or "ETH"/"native" for the native token)'
+    required: false
+  amount:
+    description: 'Amount to sell in base units (before fees)'
+    required: false
+  from:
+    description: 'Sender wallet address'
+    required: false
+  receiver:
+    description: 'Receiver wallet address (defaults to from)'
+    required: false
+  order-id:
+    description: 'Order UID (for get-order and get-trades commands)'
+    required: false
+
+outputs:
+  result:
+    description: 'JSON result of the operation'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'

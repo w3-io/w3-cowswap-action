@@ -1,0 +1,70 @@
+kind: integration
+partner: cowswap
+name: CoW Swap Integration
+version: 0.1.0
+repo: w3-io/w3-cowswap-action
+
+commands:
+  - name: quote
+    description: >
+      Get a MEV-protected swap quote from CoW Protocol. Returns pricing,
+      estimated fees, and the quote object needed for order submission.
+    inputs:
+      chain:
+        type: string
+        required: true
+        description: Target chain (ethereum, gnosis, arbitrum, base, sepolia)
+      sell-token:
+        type: string
+        required: true
+        description: Token to sell (address or "ETH"/"native")
+      buy-token:
+        type: string
+        required: true
+        description: Token to buy (address or "ETH"/"native")
+      amount:
+        type: string
+        required: true
+        description: Sell amount in base units (before fees)
+      from:
+        type: string
+        required: true
+        description: Sender wallet address
+    outputs:
+      result:
+        type: object
+        description: Quote object with id, sellAmount, buyAmount, feeAmount
+
+  - name: get-order
+    description: >
+      Check the status of an existing CoW Protocol order by its UID.
+    inputs:
+      chain:
+        type: string
+        required: true
+        description: Target chain
+      order-id:
+        type: string
+        required: true
+        description: Order UID
+    outputs:
+      result:
+        type: object
+        description: Order details with status, amounts, timestamps
+
+  - name: get-trades
+    description: >
+      Get executed trades (fills) for a CoW Protocol order.
+    inputs:
+      chain:
+        type: string
+        required: true
+        description: Target chain
+      order-id:
+        type: string
+        required: true
+        description: Order UID
+    outputs:
+      result:
+        type: array
+        description: Array of trade objects with amounts, txHash, blockNumber
