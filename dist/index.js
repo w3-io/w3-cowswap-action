@@ -28230,7 +28230,7 @@ async function signAndSubmitOrder(chain, quoteResponse) {
   // Submit to CoW API
   return submitOrder(chain, {
     quote: orderParams,
-    signature: signResult.result,
+    signature: signResult.signature,
   })
 }
 
