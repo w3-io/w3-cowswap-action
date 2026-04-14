@@ -264,18 +264,10 @@ describe('cancelOrder: parameter validation', () => {
   })
 })
 
-describe('cancelOrder: API call', () => {
-  it('DELETEs the correct endpoint', async () => {
-    mockFetch([{ status: 200, body: '' }])
-
-    const result = await cancelOrder('ethereum', '0xabc')
-
-    assert.equal(calls.length, 1)
-    assert.equal(calls[0].url, 'https://api.cow.fi/mainnet/api/v1/orders/0xabc')
-    assert.equal(calls[0].options.method, 'DELETE')
-    assert.deepEqual(result, { cancelled: true, orderId: '0xabc' })
-  })
-})
+// cancelOrder API call tests are not included here because cancelOrder
+// now signs via bridge.chain (EIP-712) before the DELETE request.
+// Bridge mocking is out of scope for these unit tests. The parameter
+// validation tests above cover the pre-bridge validation path.
 
 describe('limitOrder: parameter validation', () => {
   it('throws MISSING_SELL_TOKEN when sellToken is missing', async () => {

@@ -54762,7 +54762,7 @@ async function request(url, options = {}) {
         const response = await fetch(url, {
             method,
             headers: {
-                ...(body ? { "Content-Type": "application/json" } : {}),
+                "Content-Type": "application/json",
                 ...headers,
             },
             body: body ? JSON.stringify(body) : undefined,
@@ -55466,6 +55466,10 @@ async function getOrder(chain, orderId) {
 /**
  * Cancel an order via CoW Protocol's off-chain cancellation API.
  *
+ * CoW Protocol requires an EIP-712 signature over the order UID to
+ * authenticate the cancellation. The signature uses the same
+ * GPv2Settlement domain as order submission.
+ *
  * @param {string} chain - Network name
  * @param {string} orderId - Order UID to cancel
  * @returns {Promise<object>} { cancelled: true, orderId }
@@ -55474,10 +55478,35 @@ async function cancelOrder(chain, orderId) {
   if (!orderId) throw new CowSwapError('MISSING_ORDER_ID', 'orderId is required')
 
   const baseUrl = resolveBaseUrl(chain)
+  const chainId = CHAIN_IDS[chain]
+  if (!chainId) throw new CowSwapError('INVALID_CHAIN', `Unsupported chain: ${chain}`)
+
+  const domain = {
+    name: 'Gnosis Protocol',
+    version: 'v2',
+    chainId,
+    verifyingContract: GPV2_SETTLEMENT[chain],
+  }
+
+  const types = { OrderCancellation: [{ name: 'orderUid', type: 'bytes' }] }
+
+  const message = { orderUid: orderId }
+
+  // Sign the cancellation via W3 bridge EIP-712
+  const signResult = await bridge.chain('ethereum', 'sign-typed-data', {
+    domain,
+    types,
+    primaryType: 'OrderCancellation',
+    message,
+  })
 
   try {
     await request(`${baseUrl}/api/v1/orders/${encodeURIComponent(orderId)}`, {
       method: 'DELETE',
+      body: {
+        signature: signResult.signature,
+        signingScheme: 'eip712',
+      },
     })
     return { cancelled: true, orderId }
   } catch (err) {

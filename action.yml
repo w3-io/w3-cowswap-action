@@ -28,7 +28,7 @@ inputs:
     description: 'JSON quote response from the quote command (for submit-order)'
     required: false
   order-id:
-    description: 'Order UID (for get-order, get-trades, and cancel-order commands)'
+    description: 'Order UID (for get-order, get-trades, and cancel-order commands). cancel-order requires signer access (bridge-allow and W3_SECRET_ETHEREUM).'
     required: false
   buy-amount:
     description: 'Minimum acceptable buy amount in base units (for limit-order)'

@@ -155,7 +155,7 @@ Get the executed trades (fills) for an order. An order may have multiple fills i
 
 ### cancel-order
 
-Cancel an existing order via CoW Protocol's off-chain cancellation API. The API validates the cancellation against the order's owner -- no auth needed.
+Cancel an existing order via CoW Protocol's signed off-chain cancellation. Signs the order UID with EIP-712 using the same GPv2Settlement domain as order submission. Requires signer access via `bridge-allow` and `W3_SECRET_ETHEREUM`.
 
 **Inputs:**
 
@@ -182,6 +182,9 @@ Cancel an existing order via CoW Protocol's off-chain cancellation API. The API 
     command: cancel-order
     chain: ethereum
     order-id: '0xOrderUidHere'
+    bridge-allow: ethereum
+  env:
+    W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
 
 - run: |
     echo "Cancelled: ${{ fromJSON(steps.cancel.outputs.result).cancelled }}"

@@ -89,8 +89,10 @@ commands:
 
   - name: cancel-order
     description: >
-      Cancel an existing CoW Protocol order via off-chain cancellation.
-      The API validates the cancellation against the order's owner.
+      Cancel an existing CoW Protocol order via signed off-chain
+      cancellation. Signs the order UID with EIP-712 using the same
+      GPv2Settlement domain as order submission. Requires signer
+      access (bridge-allow and W3_SECRET_ETHEREUM).
     inputs:
       chain:
         type: string
