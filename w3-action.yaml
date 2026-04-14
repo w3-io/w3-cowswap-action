@@ -35,6 +35,24 @@ commands:
         type: object
         description: Quote object with id, sellAmount, buyAmount, feeAmount
 
+  - name: submit-order
+    description: >
+      Sign and submit a quoted order to CoW Protocol. Signs the order
+      via EIP-712 through the bridge and submits to the CoW API.
+    inputs:
+      chain:
+        type: string
+        required: true
+        description: Target chain (ethereum, gnosis, arbitrum, base, sepolia)
+      quote:
+        type: string
+        required: true
+        description: JSON quote response from the quote command
+    outputs:
+      result:
+        type: object
+        description: Order UID for tracking the submitted order
+
   - name: get-order
     description: >
       Check the status of an existing CoW Protocol order by its UID.
