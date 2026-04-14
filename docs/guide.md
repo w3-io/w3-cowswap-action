@@ -269,3 +269,11 @@ Order submission (`submit-order`) is not exposed as a command. CoW Protocol requ
 - **Requires external signing**: order submission
 
 To submit an order, get a quote via this action, sign the quote externally using an EIP-712-capable signer, then POST to the CoW API directly. Full EIP-712 bridge support is planned for a future release.
+
+## Future work
+
+Features not included in v0.1.0:
+
+- **TWAP orders** — Time-weighted average price orders via CoW's composable order framework. Requires different smart contracts (ComposableCoW) and a more complex order structure.
+- **Programmatic/conditional orders** — Same composable order framework. Enables orders that execute only when on-chain conditions are met (e.g., price thresholds). Niche use case.
+- **Buy-side quotes** — Setting `kind: 'buy'` on the quote endpoint to specify exact output amount. Trivial to add when needed.
