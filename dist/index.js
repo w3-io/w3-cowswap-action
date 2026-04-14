@@ -28159,6 +28159,7 @@ async function submitOrder(chain, { quote: orderQuote, signature }) {
 
   const body = {
     ...orderQuote,
+    feeAmount: '0',
     signature,
     signingScheme: 'eip712',
   }
@@ -28212,7 +28213,7 @@ async function signAndSubmitOrder(chain, quoteResponse) {
     buyAmount: orderParams.buyAmount,
     validTo: orderParams.validTo,
     appData: orderParams.appData,
-    feeAmount: orderParams.feeAmount,
+    feeAmount: '0',
     kind: orderParams.kind,
     partiallyFillable: orderParams.partiallyFillable,
     sellTokenBalance: orderParams.sellTokenBalance || 'erc20',
