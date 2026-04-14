@@ -4,7 +4,7 @@ author: 'w3-io'
 
 inputs:
   command:
-    description: 'Operation to perform (quote, get-order, get-trades)'
+    description: 'Operation to perform (quote, submit-order, get-order, get-trades)'
     required: true
   chain:
     description: 'Target chain (ethereum, gnosis, arbitrum, base, sepolia)'
@@ -23,6 +23,9 @@ inputs:
     required: false
   receiver:
     description: 'Receiver wallet address (defaults to from)'
+    required: false
+  quote:
+    description: 'JSON quote response from the quote command (for submit-order)'
     required: false
   order-id:
     description: 'Order UID (for get-order and get-trades commands)'

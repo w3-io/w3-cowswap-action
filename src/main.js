@@ -1,18 +1,15 @@
 import * as core from '@actions/core'
 import { createCommandRouter, setJsonOutput, handleError } from '@w3-io/action-core'
-import { quote, getOrder, getTrades, CowSwapError } from './cowswap.js'
+import { quote, signAndSubmitOrder, getOrder, getTrades, CowSwapError } from './cowswap.js'
 
 /**
  * W3 CoW Swap Action — command dispatch.
  *
  * Commands:
  *   - quote: Get a swap quote from CoW Protocol
+ *   - submit-order: Sign and submit a quoted order
  *   - get-order: Check order status by UID
  *   - get-trades: Get fills for an order
- *
- * NOTE: submit-order is not exposed as a command in v0.1.0 because the
- * W3 bridge cannot produce EIP-712 typed data signatures. The quote and
- * tracking commands work fully. See README for details.
  */
 
 const handlers = {
@@ -29,6 +26,14 @@ const handlers = {
       sellAmountBeforeFee: amount,
       from,
     })
+    setJsonOutput('result', result)
+  },
+
+  'submit-order': async () => {
+    const chain = core.getInput('chain', { required: true })
+    const quoteJson = core.getInput('quote', { required: true })
+    const quoteResponse = JSON.parse(quoteJson)
+    const result = await signAndSubmitOrder(chain, quoteResponse)
     setJsonOutput('result', result)
   },
 

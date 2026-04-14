@@ -7,7 +7,7 @@
  * Supported chains: ethereum, gnosis, arbitrum, base, sepolia.
  */
 
-import { request, W3ActionError } from '@w3-io/action-core'
+import { request, bridge, W3ActionError } from '@w3-io/action-core'
 
 const NATIVE_TOKEN_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
@@ -19,6 +19,42 @@ const BASE_URLS = {
   arbitrum: 'https://api.cow.fi/arbitrum_one',
   base: 'https://api.cow.fi/base',
   sepolia: 'https://api.cow.fi/sepolia',
+}
+
+// GPv2Settlement contract address (same on all supported chains)
+const GPV2_SETTLEMENT = {
+  ethereum: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+  gnosis: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+  arbitrum: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+  base: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+  sepolia: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+}
+
+// Chain IDs for EIP-712 domain
+const CHAIN_IDS = {
+  ethereum: 1,
+  gnosis: 100,
+  arbitrum: 42161,
+  base: 8453,
+  sepolia: 11155111,
+}
+
+// EIP-712 types for CoW Protocol GPv2Order
+const ORDER_TYPES = {
+  Order: [
+    { name: 'sellToken', type: 'address' },
+    { name: 'buyToken', type: 'address' },
+    { name: 'receiver', type: 'address' },
+    { name: 'sellAmount', type: 'uint256' },
+    { name: 'buyAmount', type: 'uint256' },
+    { name: 'validTo', type: 'uint32' },
+    { name: 'appData', type: 'bytes32' },
+    { name: 'feeAmount', type: 'uint256' },
+    { name: 'kind', type: 'string' },
+    { name: 'partiallyFillable', type: 'bool' },
+    { name: 'sellTokenBalance', type: 'string' },
+    { name: 'buyTokenBalance', type: 'string' },
+  ],
 }
 
 /**
@@ -112,10 +148,6 @@ export async function quote(chain, { sellToken, buyToken, sellAmountBeforeFee, f
 /**
  * Submit a signed order to CoW Protocol.
  *
- * NOTE: v0.1.0 limitation — the W3 bridge signs raw transactions, not
- * EIP-712 typed data. This function is provided for completeness but
- * requires an externally produced EIP-712 signature. See README for details.
- *
  * @param {string} chain - Network name
  * @param {object} params - Order parameters
  * @param {object} params.quote - Quote object from the quote() call
@@ -147,6 +179,62 @@ export async function submitOrder(chain, { quote: orderQuote, signature }) {
     }
     throw err
   }
+}
+
+/**
+ * Sign a CoW Protocol order via the W3 bridge and submit it.
+ *
+ * Constructs the GPv2 EIP-712 typed data from the quote response,
+ * signs it via the bridge's sign-typed-data action, and submits the
+ * signed order to the CoW Protocol API.
+ *
+ * @param {string} chain - Network name (ethereum, gnosis, arbitrum, base, sepolia)
+ * @param {object} quoteResponse - Full response from the quote() call
+ * @returns {Promise<string>} Order UID
+ */
+export async function signAndSubmitOrder(chain, quoteResponse) {
+  if (!quoteResponse?.quote)
+    throw new CowSwapError('MISSING_QUOTE', 'quoteResponse.quote is required')
+
+  const { quote: orderParams, from } = quoteResponse
+  const chainId = CHAIN_IDS[chain]
+  if (!chainId) throw new CowSwapError('INVALID_CHAIN', `Unsupported chain: ${chain}`)
+
+  const domain = {
+    name: 'Gnosis Protocol',
+    version: 'v2',
+    chainId,
+    verifyingContract: GPV2_SETTLEMENT[chain],
+  }
+
+  const message = {
+    sellToken: orderParams.sellToken,
+    buyToken: orderParams.buyToken,
+    receiver: from || orderParams.receiver,
+    sellAmount: orderParams.sellAmount,
+    buyAmount: orderParams.buyAmount,
+    validTo: orderParams.validTo,
+    appData: orderParams.appData,
+    feeAmount: orderParams.feeAmount,
+    kind: orderParams.kind,
+    partiallyFillable: orderParams.partiallyFillable,
+    sellTokenBalance: orderParams.sellTokenBalance || 'erc20',
+    buyTokenBalance: orderParams.buyTokenBalance || 'erc20',
+  }
+
+  // Sign via W3 bridge EIP-712
+  const signResult = await bridge.chain('ethereum', 'sign-typed-data', {
+    domain,
+    types: { Order: ORDER_TYPES.Order },
+    primaryType: 'Order',
+    message,
+  })
+
+  // Submit to CoW API
+  return submitOrder(chain, {
+    quote: orderParams,
+    signature: signResult.result,
+  })
 }
 
 /**
@@ -186,9 +274,7 @@ export async function getTrades(chain, orderId) {
   const baseUrl = resolveBaseUrl(chain)
 
   try {
-    return await request(
-      `${baseUrl}/api/v1/trades?orderUid=${encodeURIComponent(orderId)}`,
-    )
+    return await request(`${baseUrl}/api/v1/trades?orderUid=${encodeURIComponent(orderId)}`)
   } catch (err) {
     if (err && typeof err === 'object' && 'statusCode' in err) {
       throw new CowSwapError('TRADES_FETCH_FAILED', err.message || `HTTP ${err.statusCode}`, {

@@ -27585,7 +27585,7 @@ function handleError(error) {
  *
  * For partner API clients that don't need the bridge.
  */
-async function http_request(url, options = {}) {
+async function request(url, options = {}) {
     const { method = "GET", headers = {}, body, timeout = 30000 } = options;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
@@ -28018,6 +28018,42 @@ const BASE_URLS = {
   sepolia: 'https://api.cow.fi/sepolia',
 }
 
+// GPv2Settlement contract address (same on all supported chains)
+const GPV2_SETTLEMENT = {
+  ethereum: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+  gnosis: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+  arbitrum: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+  base: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+  sepolia: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+}
+
+// Chain IDs for EIP-712 domain
+const CHAIN_IDS = {
+  ethereum: 1,
+  gnosis: 100,
+  arbitrum: 42161,
+  base: 8453,
+  sepolia: 11155111,
+}
+
+// EIP-712 types for CoW Protocol GPv2Order
+const ORDER_TYPES = {
+  Order: [
+    { name: 'sellToken', type: 'address' },
+    { name: 'buyToken', type: 'address' },
+    { name: 'receiver', type: 'address' },
+    { name: 'sellAmount', type: 'uint256' },
+    { name: 'buyAmount', type: 'uint256' },
+    { name: 'validTo', type: 'uint32' },
+    { name: 'appData', type: 'bytes32' },
+    { name: 'feeAmount', type: 'uint256' },
+    { name: 'kind', type: 'string' },
+    { name: 'partiallyFillable', type: 'bool' },
+    { name: 'sellTokenBalance', type: 'string' },
+    { name: 'buyTokenBalance', type: 'string' },
+  ],
+}
+
 /**
  * CoW Swap specific error class. Extends W3ActionError so action-core's
  * handleError reports the structured code and downstream consumers can
@@ -28092,7 +28128,7 @@ async function quote(chain, { sellToken, buyToken, sellAmountBeforeFee, from }) 
   }
 
   try {
-    return await http_request(`${baseUrl}/api/v1/quote`, {
+    return await request(`${baseUrl}/api/v1/quote`, {
       method: 'POST',
       body,
     })
@@ -28108,10 +28144,6 @@ async function quote(chain, { sellToken, buyToken, sellAmountBeforeFee, from }) 
 
 /**
  * Submit a signed order to CoW Protocol.
- *
- * NOTE: v0.1.0 limitation — the W3 bridge signs raw transactions, not
- * EIP-712 typed data. This function is provided for completeness but
- * requires an externally produced EIP-712 signature. See README for details.
  *
  * @param {string} chain - Network name
  * @param {object} params - Order parameters
@@ -28147,6 +28179,62 @@ async function submitOrder(chain, { quote: orderQuote, signature }) {
 }
 
 /**
+ * Sign a CoW Protocol order via the W3 bridge and submit it.
+ *
+ * Constructs the GPv2 EIP-712 typed data from the quote response,
+ * signs it via the bridge's sign-typed-data action, and submits the
+ * signed order to the CoW Protocol API.
+ *
+ * @param {string} chain - Network name (ethereum, gnosis, arbitrum, base, sepolia)
+ * @param {object} quoteResponse - Full response from the quote() call
+ * @returns {Promise<string>} Order UID
+ */
+async function signAndSubmitOrder(chain, quoteResponse) {
+  if (!quoteResponse?.quote)
+    throw new CowSwapError('MISSING_QUOTE', 'quoteResponse.quote is required')
+
+  const { quote: orderParams, from } = quoteResponse
+  const chainId = CHAIN_IDS[chain]
+  if (!chainId) throw new CowSwapError('INVALID_CHAIN', `Unsupported chain: ${chain}`)
+
+  const domain = {
+    name: 'Gnosis Protocol',
+    version: 'v2',
+    chainId,
+    verifyingContract: GPV2_SETTLEMENT[chain],
+  }
+
+  const message = {
+    sellToken: orderParams.sellToken,
+    buyToken: orderParams.buyToken,
+    receiver: from || orderParams.receiver,
+    sellAmount: orderParams.sellAmount,
+    buyAmount: orderParams.buyAmount,
+    validTo: orderParams.validTo,
+    appData: orderParams.appData,
+    feeAmount: orderParams.feeAmount,
+    kind: orderParams.kind,
+    partiallyFillable: orderParams.partiallyFillable,
+    sellTokenBalance: orderParams.sellTokenBalance || 'erc20',
+    buyTokenBalance: orderParams.buyTokenBalance || 'erc20',
+  }
+
+  // Sign via W3 bridge EIP-712
+  const signResult = await bridge.chain('ethereum', 'sign-typed-data', {
+    domain,
+    types: { Order: ORDER_TYPES.Order },
+    primaryType: 'Order',
+    message,
+  })
+
+  // Submit to CoW API
+  return submitOrder(chain, {
+    quote: orderParams,
+    signature: signResult.result,
+  })
+}
+
+/**
  * Get order details by UID.
  *
  * @param {string} chain - Network name
@@ -28159,7 +28247,7 @@ async function getOrder(chain, orderId) {
   const baseUrl = resolveBaseUrl(chain)
 
   try {
-    return await http_request(`${baseUrl}/api/v1/orders/${encodeURIComponent(orderId)}`)
+    return await request(`${baseUrl}/api/v1/orders/${encodeURIComponent(orderId)}`)
   } catch (err) {
     if (err && typeof err === 'object' && 'statusCode' in err) {
       throw new CowSwapError('ORDER_FETCH_FAILED', err.message || `HTTP ${err.statusCode}`, {
@@ -28183,9 +28271,7 @@ async function getTrades(chain, orderId) {
   const baseUrl = resolveBaseUrl(chain)
 
   try {
-    return await http_request(
-      `${baseUrl}/api/v1/trades?orderUid=${encodeURIComponent(orderId)}`,
-    )
+    return await request(`${baseUrl}/api/v1/trades?orderUid=${encodeURIComponent(orderId)}`)
   } catch (err) {
     if (err && typeof err === 'object' && 'statusCode' in err) {
       throw new CowSwapError('TRADES_FETCH_FAILED', err.message || `HTTP ${err.statusCode}`, {
@@ -28206,12 +28292,9 @@ async function getTrades(chain, orderId) {
  *
  * Commands:
  *   - quote: Get a swap quote from CoW Protocol
+ *   - submit-order: Sign and submit a quoted order
  *   - get-order: Check order status by UID
  *   - get-trades: Get fills for an order
- *
- * NOTE: submit-order is not exposed as a command in v0.1.0 because the
- * W3 bridge cannot produce EIP-712 typed data signatures. The quote and
- * tracking commands work fully. See README for details.
  */
 
 const handlers = {
@@ -28228,6 +28311,14 @@ const handlers = {
       sellAmountBeforeFee: amount,
       from,
     })
+    setJsonOutput('result', result)
+  },
+
+  'submit-order': async () => {
+    const chain = lib_core.getInput('chain', { required: true })
+    const quoteJson = lib_core.getInput('quote', { required: true })
+    const quoteResponse = JSON.parse(quoteJson)
+    const result = await signAndSubmitOrder(chain, quoteResponse)
     setJsonOutput('result', result)
   },
 
