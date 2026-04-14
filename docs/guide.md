@@ -76,10 +76,10 @@ Check the status of an existing order by its UID.
 
 **Inputs:**
 
-| Input      | Type   | Required | Description |
-| ---------- | ------ | -------- | ----------- |
+| Input      | Type   | Required | Description  |
+| ---------- | ------ | -------- | ------------ |
 | `chain`    | string | Yes      | Target chain |
-| `order-id` | string | Yes      | Order UID   |
+| `order-id` | string | Yes      | Order UID    |
 
 **Output:**
 
@@ -117,10 +117,10 @@ Get the executed trades (fills) for an order. An order may have multiple fills i
 
 **Inputs:**
 
-| Input      | Type   | Required | Description |
-| ---------- | ------ | -------- | ----------- |
+| Input      | Type   | Required | Description  |
+| ---------- | ------ | -------- | ------------ |
 | `chain`    | string | Yes      | Target chain |
-| `order-id` | string | Yes      | Order UID   |
+| `order-id` | string | Yes      | Order UID    |
 
 **Output:**
 
@@ -153,30 +153,106 @@ Get the executed trades (fills) for an order. An order may have multiple fills i
     echo "Trades: ${{ steps.trades.outputs.result }}"
 ```
 
+### cancel-order
+
+Cancel an existing order via CoW Protocol's off-chain cancellation API. The API validates the cancellation against the order's owner -- no auth needed.
+
+**Inputs:**
+
+| Input      | Type   | Required | Description  |
+| ---------- | ------ | -------- | ------------ |
+| `chain`    | string | Yes      | Target chain |
+| `order-id` | string | Yes      | Order UID    |
+
+**Output:**
+
+```json
+{
+  "cancelled": true,
+  "orderId": "0x..."
+}
+```
+
+**Example:**
+
+```yaml
+- id: cancel
+  uses: w3-io/w3-cowswap-action@v0
+  with:
+    command: cancel-order
+    chain: ethereum
+    order-id: '0xOrderUidHere'
+
+- run: |
+    echo "Cancelled: ${{ fromJSON(steps.cancel.outputs.result).cancelled }}"
+```
+
+### limit-order
+
+Submit a limit order in one step. Gets a quote, overrides `buyAmount` with the specified limit price, sets the expiry via `valid-for`, then signs and submits.
+
+**Inputs:**
+
+| Input        | Type   | Required | Description                            |
+| ------------ | ------ | -------- | -------------------------------------- |
+| `chain`      | string | Yes      | Target chain                           |
+| `sell-token` | string | Yes      | Token to sell (address or "ETH")       |
+| `buy-token`  | string | Yes      | Token to buy (address or "ETH")        |
+| `amount`     | string | Yes      | Sell amount in base units (before fee) |
+| `buy-amount` | string | Yes      | Minimum acceptable buy amount          |
+| `from`       | string | Yes      | Sender address                         |
+| `valid-for`  | string | No       | Seconds until expiry (default 3600)    |
+
+**Output:**
+
+Order UID (string) for tracking the submitted order.
+
+**Example:**
+
+```yaml
+- id: limit
+  uses: w3-io/w3-cowswap-action@v0
+  with:
+    command: limit-order
+    chain: ethereum
+    sell-token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+    buy-token: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+    amount: '1000000000'
+    buy-amount: '500000000000000000'
+    from: '0xSenderAddress'
+    valid-for: '7200'
+
+- run: |
+    echo "Order UID: ${{ steps.limit.outputs.result }}"
+```
+
 ## Error Codes
 
-| Code                  | Meaning                                    |
-| --------------------- | ------------------------------------------ |
-| `MISSING_CHAIN`       | No chain specified                         |
-| `UNSUPPORTED_CHAIN`   | Chain not supported by CoW Protocol        |
-| `MISSING_SELL_TOKEN`  | sell-token input missing                   |
-| `MISSING_BUY_TOKEN`   | buy-token input missing                    |
-| `MISSING_AMOUNT`      | amount input missing                       |
-| `MISSING_FROM`        | from address missing                       |
-| `MISSING_ORDER_ID`    | order-id input missing                     |
-| `QUOTE_FAILED`        | CoW API rejected the quote request         |
-| `ORDER_FETCH_FAILED`  | Failed to fetch order details              |
-| `TRADES_FETCH_FAILED` | Failed to fetch trades                     |
+| Code                  | Meaning                             |
+| --------------------- | ----------------------------------- |
+| `MISSING_CHAIN`       | No chain specified                  |
+| `UNSUPPORTED_CHAIN`   | Chain not supported by CoW Protocol |
+| `MISSING_SELL_TOKEN`  | sell-token input missing            |
+| `MISSING_BUY_TOKEN`   | buy-token input missing             |
+| `MISSING_AMOUNT`      | amount input missing                |
+| `MISSING_FROM`        | from address missing                |
+| `MISSING_ORDER_ID`    | order-id input missing              |
+| `QUOTE_FAILED`        | CoW API rejected the quote request  |
+| `ORDER_FETCH_FAILED`  | Failed to fetch order details       |
+| `TRADES_FETCH_FAILED` | Failed to fetch trades              |
+| `CANCEL_FAILED`       | CoW API rejected the cancellation   |
+| `MISSING_SELL_AMOUNT` | sell amount missing (limit-order)   |
+| `MISSING_BUY_AMOUNT`  | buy-amount missing (limit-order)    |
 
 ## Supported Chains
 
-| Chain      | API Base URL                        |
-| ---------- | ----------------------------------- |
-| ethereum   | https://api.cow.fi/mainnet          |
-| gnosis     | https://api.cow.fi/xdai             |
-| arbitrum   | https://api.cow.fi/arbitrum_one     |
-| base       | https://api.cow.fi/base             |
-| sepolia    | https://api.cow.fi/sepolia          |
+| Chain    | API Base URL                    |
+| -------- | ------------------------------- |
+| ethereum | https://api.cow.fi/mainnet      |
+| gnosis   | https://api.cow.fi/xdai         |
+| arbitrum | https://api.cow.fi/arbitrum_one |
+| base     | https://api.cow.fi/base         |
+| sepolia  | https://api.cow.fi/sepolia      |
 
 ## Native Token Alias
 

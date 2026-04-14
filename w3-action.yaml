@@ -86,3 +86,60 @@ commands:
       result:
         type: array
         description: Array of trade objects with amounts, txHash, blockNumber
+
+  - name: cancel-order
+    description: >
+      Cancel an existing CoW Protocol order via off-chain cancellation.
+      The API validates the cancellation against the order's owner.
+    inputs:
+      chain:
+        type: string
+        required: true
+        description: Target chain (ethereum, gnosis, arbitrum, base, sepolia)
+      order-id:
+        type: string
+        required: true
+        description: Order UID to cancel
+    outputs:
+      result:
+        type: object
+        description: Cancellation confirmation with orderId
+
+  - name: limit-order
+    description: >
+      Submit a limit order to CoW Protocol. Gets a quote, overrides
+      buyAmount with the specified limit price, sets the expiry, then
+      signs and submits the order in one step.
+    inputs:
+      chain:
+        type: string
+        required: true
+        description: Target chain (ethereum, gnosis, arbitrum, base, sepolia)
+      sell-token:
+        type: string
+        required: true
+        description: Token to sell (address or "ETH"/"native")
+      buy-token:
+        type: string
+        required: true
+        description: Token to buy (address or "ETH"/"native")
+      amount:
+        type: string
+        required: true
+        description: Sell amount in base units (before fees)
+      buy-amount:
+        type: string
+        required: true
+        description: Minimum acceptable buy amount (limit price)
+      from:
+        type: string
+        required: true
+        description: Sender wallet address
+      valid-for:
+        type: string
+        required: false
+        description: Seconds until order expiry (default 3600)
+    outputs:
+      result:
+        type: object
+        description: Order UID for tracking the submitted order

@@ -4,7 +4,7 @@ author: 'w3-io'
 
 inputs:
   command:
-    description: 'Operation to perform (quote, submit-order, get-order, get-trades)'
+    description: 'Operation to perform (quote, submit-order, get-order, get-trades, cancel-order, limit-order)'
     required: true
   chain:
     description: 'Target chain (ethereum, gnosis, arbitrum, base, sepolia)'
@@ -28,8 +28,15 @@ inputs:
     description: 'JSON quote response from the quote command (for submit-order)'
     required: false
   order-id:
-    description: 'Order UID (for get-order and get-trades commands)'
+    description: 'Order UID (for get-order, get-trades, and cancel-order commands)'
     required: false
+  buy-amount:
+    description: 'Minimum acceptable buy amount in base units (for limit-order)'
+    required: false
+  valid-for:
+    description: 'Seconds until order expiry (for limit-order, default 3600)'
+    required: false
+    default: '3600'
 
 outputs:
   result:

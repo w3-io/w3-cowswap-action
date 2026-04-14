@@ -1,6 +1,14 @@
 import * as core from '@actions/core'
 import { createCommandRouter, setJsonOutput, handleError } from '@w3-io/action-core'
-import { quote, signAndSubmitOrder, getOrder, getTrades, CowSwapError } from './cowswap.js'
+import {
+  quote,
+  signAndSubmitOrder,
+  getOrder,
+  getTrades,
+  cancelOrder,
+  limitOrder,
+  CowSwapError,
+} from './cowswap.js'
 
 /**
  * W3 CoW Swap Action — command dispatch.
@@ -10,6 +18,8 @@ import { quote, signAndSubmitOrder, getOrder, getTrades, CowSwapError } from './
  *   - submit-order: Sign and submit a quoted order
  *   - get-order: Check order status by UID
  *   - get-trades: Get fills for an order
+ *   - cancel-order: Cancel an order off-chain
+ *   - limit-order: Quote, set limit price, sign and submit
  */
 
 const handlers = {
@@ -48,6 +58,26 @@ const handlers = {
     const chain = core.getInput('chain', { required: true })
     const orderId = core.getInput('order-id', { required: true })
     const result = await getTrades(chain, orderId)
+    setJsonOutput('result', result)
+  },
+
+  'cancel-order': async () => {
+    const chain = core.getInput('chain', { required: true })
+    const orderId = core.getInput('order-id', { required: true })
+    const result = await cancelOrder(chain, orderId)
+    setJsonOutput('result', result)
+  },
+
+  'limit-order': async () => {
+    const chain = core.getInput('chain', { required: true })
+    const result = await limitOrder(chain, {
+      sellToken: core.getInput('sell-token', { required: true }),
+      buyToken: core.getInput('buy-token', { required: true }),
+      sellAmount: core.getInput('amount', { required: true }),
+      buyAmount: core.getInput('buy-amount', { required: true }),
+      from: core.getInput('from', { required: true }),
+      validFor: core.getInput('valid-for') || '3600',
+    })
     setJsonOutput('result', result)
   },
 }

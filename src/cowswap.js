@@ -263,6 +263,79 @@ export async function getOrder(chain, orderId) {
 }
 
 /**
+ * Cancel an order via CoW Protocol's off-chain cancellation API.
+ *
+ * @param {string} chain - Network name
+ * @param {string} orderId - Order UID to cancel
+ * @returns {Promise<object>} { cancelled: true, orderId }
+ */
+export async function cancelOrder(chain, orderId) {
+  if (!orderId) throw new CowSwapError('MISSING_ORDER_ID', 'orderId is required')
+
+  const baseUrl = resolveBaseUrl(chain)
+
+  try {
+    await request(`${baseUrl}/api/v1/orders/${encodeURIComponent(orderId)}`, {
+      method: 'DELETE',
+    })
+    return { cancelled: true, orderId }
+  } catch (err) {
+    if (err && typeof err === 'object' && 'statusCode' in err) {
+      throw new CowSwapError('CANCEL_FAILED', err.message || `HTTP ${err.statusCode}`, {
+        statusCode: err.statusCode,
+      })
+    }
+    throw err
+  }
+}
+
+/**
+ * Submit a limit order to CoW Protocol.
+ *
+ * Gets a quote, overrides buyAmount with the user's limit price and
+ * sets validTo to the specified expiry, then signs and submits.
+ *
+ * @param {string} chain - Network name
+ * @param {object} params - Limit order parameters
+ * @param {string} params.sellToken - Token to sell
+ * @param {string} params.buyToken - Token to buy
+ * @param {string} params.sellAmount - Amount to sell in base units
+ * @param {string} params.buyAmount - Minimum acceptable buy amount
+ * @param {string} params.from - Sender address
+ * @param {string} [params.validFor] - Seconds until expiry (default 3600)
+ * @returns {Promise<string>} Order UID
+ */
+export async function limitOrder(
+  chain,
+  { sellToken, buyToken, sellAmount, buyAmount, from, validFor },
+) {
+  if (!sellToken) throw new CowSwapError('MISSING_SELL_TOKEN', 'sellToken is required')
+  if (!buyToken) throw new CowSwapError('MISSING_BUY_TOKEN', 'buyToken is required')
+  if (!sellAmount) throw new CowSwapError('MISSING_SELL_AMOUNT', 'sellAmount is required')
+  if (!buyAmount)
+    throw new CowSwapError('MISSING_BUY_AMOUNT', 'buyAmount is required for limit orders')
+  if (!from) throw new CowSwapError('MISSING_FROM', 'from address is required')
+
+  // Default: 1 hour expiry
+  const validTo = Math.floor(Date.now() / 1000) + (parseInt(validFor, 10) || 3600)
+
+  // Get a quote to get the fee and order parameters
+  const quoteResponse = await quote(chain, {
+    sellToken,
+    buyToken,
+    sellAmountBeforeFee: sellAmount,
+    from,
+  })
+
+  // Override buyAmount with the user's limit
+  quoteResponse.quote.buyAmount = buyAmount
+  quoteResponse.quote.validTo = validTo
+
+  // Sign and submit
+  return signAndSubmitOrder(chain, quoteResponse)
+}
+
+/**
  * Get trades (fills) for an order.
  *
  * @param {string} chain - Network name

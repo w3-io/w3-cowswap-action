@@ -7,7 +7,15 @@
 
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { quote, getOrder, getTrades, submitOrder, CowSwapError } from '../src/cowswap.js'
+import {
+  quote,
+  getOrder,
+  getTrades,
+  submitOrder,
+  cancelOrder,
+  limitOrder,
+  CowSwapError,
+} from '../src/cowswap.js'
 
 let originalFetch
 let calls
@@ -236,6 +244,89 @@ describe('submitOrder: parameter validation', () => {
     await assert.rejects(
       () => submitOrder('ethereum', { quote: { sellAmount: '100' } }),
       (err) => err instanceof CowSwapError && err.code === 'MISSING_SIGNATURE',
+    )
+  })
+})
+
+describe('cancelOrder: parameter validation', () => {
+  it('throws MISSING_ORDER_ID when orderId is missing', async () => {
+    await assert.rejects(
+      () => cancelOrder('ethereum', ''),
+      (err) => err instanceof CowSwapError && err.code === 'MISSING_ORDER_ID',
+    )
+  })
+
+  it('throws UNSUPPORTED_CHAIN for unknown chain', async () => {
+    await assert.rejects(
+      () => cancelOrder('polygon', '0xabc'),
+      (err) => err instanceof CowSwapError && err.code === 'UNSUPPORTED_CHAIN',
+    )
+  })
+})
+
+describe('cancelOrder: API call', () => {
+  it('DELETEs the correct endpoint', async () => {
+    mockFetch([{ status: 200, body: '' }])
+
+    const result = await cancelOrder('ethereum', '0xabc')
+
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0].url, 'https://api.cow.fi/mainnet/api/v1/orders/0xabc')
+    assert.equal(calls[0].options.method, 'DELETE')
+    assert.deepEqual(result, { cancelled: true, orderId: '0xabc' })
+  })
+})
+
+describe('limitOrder: parameter validation', () => {
+  it('throws MISSING_SELL_TOKEN when sellToken is missing', async () => {
+    await assert.rejects(
+      () =>
+        limitOrder('ethereum', {
+          buyToken: '0xdef',
+          sellAmount: '100',
+          buyAmount: '50',
+          from: '0x1',
+        }),
+      (err) => err instanceof CowSwapError && err.code === 'MISSING_SELL_TOKEN',
+    )
+  })
+
+  it('throws MISSING_BUY_AMOUNT when buyAmount is missing', async () => {
+    await assert.rejects(
+      () =>
+        limitOrder('ethereum', {
+          sellToken: '0xabc',
+          buyToken: '0xdef',
+          sellAmount: '100',
+          from: '0x1',
+        }),
+      (err) => err instanceof CowSwapError && err.code === 'MISSING_BUY_AMOUNT',
+    )
+  })
+
+  it('throws MISSING_SELL_AMOUNT when sellAmount is missing', async () => {
+    await assert.rejects(
+      () =>
+        limitOrder('ethereum', {
+          sellToken: '0xabc',
+          buyToken: '0xdef',
+          buyAmount: '50',
+          from: '0x1',
+        }),
+      (err) => err instanceof CowSwapError && err.code === 'MISSING_SELL_AMOUNT',
+    )
+  })
+
+  it('throws MISSING_FROM when from is missing', async () => {
+    await assert.rejects(
+      () =>
+        limitOrder('ethereum', {
+          sellToken: '0xabc',
+          buyToken: '0xdef',
+          sellAmount: '100',
+          buyAmount: '50',
+        }),
+      (err) => err instanceof CowSwapError && err.code === 'MISSING_FROM',
     )
   })
 })

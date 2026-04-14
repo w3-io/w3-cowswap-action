@@ -19,46 +19,46 @@ CoW Protocol collects swap intents (orders) into batches and settles them off-ch
     command: quote
     chain: ethereum
     sell-token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' # USDC
-    buy-token: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'  # WETH
-    amount: '1000000000'  # 1000 USDC (6 decimals)
+    buy-token: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' # WETH
+    amount: '1000000000' # 1000 USDC (6 decimals)
     from: '0xYourAddress'
 ```
 
 ## Commands
 
-| Command      | Description                        |
-| ------------ | ---------------------------------- |
-| `quote`      | Get a swap quote                   |
-| `get-order`  | Check order status by UID          |
-| `get-trades` | Get trade fills for an order       |
+| Command      | Description                  |
+| ------------ | ---------------------------- |
+| `quote`      | Get a swap quote             |
+| `get-order`  | Check order status by UID    |
+| `get-trades` | Get trade fills for an order |
 
 ## Inputs
 
-| Input        | Required | Description                                          |
-| ------------ | -------- | ---------------------------------------------------- |
-| `command`    | Yes      | Operation to perform                                 |
+| Input        | Required | Description                                              |
+| ------------ | -------- | -------------------------------------------------------- |
+| `command`    | Yes      | Operation to perform                                     |
 | `chain`      | Yes      | Target chain (ethereum, gnosis, arbitrum, base, sepolia) |
-| `sell-token` | No       | Token to sell (address or "ETH"/"native")            |
-| `buy-token`  | No       | Token to buy (address or "ETH"/"native")             |
-| `amount`     | No       | Amount to sell in base units (before fees)            |
-| `from`       | No       | Sender wallet address                                |
-| `receiver`   | No       | Receiver wallet address (defaults to from)           |
-| `order-id`   | No       | Order UID (for get-order, get-trades)                |
+| `sell-token` | No       | Token to sell (address or "ETH"/"native")                |
+| `buy-token`  | No       | Token to buy (address or "ETH"/"native")                 |
+| `amount`     | No       | Amount to sell in base units (before fees)               |
+| `from`       | No       | Sender wallet address                                    |
+| `receiver`   | No       | Receiver wallet address (defaults to from)               |
+| `order-id`   | No       | Order UID (for get-order, get-trades)                    |
 
 ## Outputs
 
-| Output   | Description               |
-| -------- | ------------------------- |
+| Output   | Description                  |
+| -------- | ---------------------------- |
 | `result` | JSON result of the operation |
 
 ## Supported Chains
 
-| Chain    | Network    |
-| -------- | ---------- |
-| ethereum | Mainnet    |
-| gnosis   | Gnosis Chain |
-| arbitrum | Arbitrum One |
-| base     | Base       |
+| Chain    | Network         |
+| -------- | --------------- |
+| ethereum | Mainnet         |
+| gnosis   | Gnosis Chain    |
+| arbitrum | Arbitrum One    |
+| base     | Base            |
 | sepolia  | Sepolia testnet |
 
 ## Authentication
