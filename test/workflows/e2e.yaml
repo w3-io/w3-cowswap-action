@@ -1,4 +1,5 @@
 # E2E Test Workflow
+# Recovery: all write tests round-trip to recover funds. Only gas is consumed.
 #
 # Exercises every command against real APIs/contracts.
 # Run on a local W3 network with:
@@ -77,6 +78,18 @@ jobs:
           chain: ethereum
           order-id: ${{ fromJSON(steps.submit.outputs.result).orderId }}
 
+      # 5. Recovery: cancel the order to prevent fill and preserve funds
+      - uses: w3-io/w3-cowswap-action@main
+        id: cancel
+        env:
+          W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
+        bridge-allow:
+          - ethereum/sign-message
+        with:
+          command: cancel-order
+          chain: ethereum
+          order-id: ${{ fromJSON(steps.submit.outputs.result).orderId }}
+
       - run: |
           echo "=== Submit ==="
           echo "${{ steps.submit.outputs.result }}"
@@ -84,6 +97,8 @@ jobs:
           echo "${{ steps.get-order.outputs.result }}"
           echo "=== Get Trades ==="
           echo "${{ steps.get-trades.outputs.result }}"
+          echo "=== Cancel (Recovery) ==="
+          echo "${{ steps.cancel.outputs.result }}"
 
   # ── Write flow: limit-order -> cancel-order ─────────────────────
   limit-cancel:
