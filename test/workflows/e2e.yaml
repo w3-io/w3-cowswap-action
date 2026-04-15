@@ -49,54 +49,47 @@ jobs:
           amount: '1000000000000000'
           from: '0xe4E402962943c4EB2253f666575eE12700e78e90'
 
-      # 2. Submit the order (requires funded wallet)
-      - uses: w3-io/w3-cowswap-action@main
-        id: submit
-        env:
-          W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow: ["*"]
-        with:
-          command: submit-order
-          chain: ethereum
-          quote: ${{ steps.quote.outputs.result }}
-          from: '0xe4E402962943c4EB2253f666575eE12700e78e90'
+      # SKIP: requires funded wallet on Ethereum mainnet
+      # - uses: w3-io/w3-cowswap-action@main
+      #   id: submit
+      #   env:
+      #     W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
+      #   bridge-allow: ["*"]
+      #   with:
+      #     command: submit-order
+      #     chain: ethereum
+      #     quote: ${{ steps.quote.outputs.result }}
+      #     from: '0xe4E402962943c4EB2253f666575eE12700e78e90'
 
-      # 3. Get order status
-      - uses: w3-io/w3-cowswap-action@main
-        id: get-order
-        with:
-          command: get-order
-          chain: ethereum
-          order-id: ${{ fromJSON(steps.submit.outputs.result).orderId }}
+      # SKIP: requires funded wallet on Ethereum mainnet (depends on submit)
+      # - uses: w3-io/w3-cowswap-action@main
+      #   id: get-order
+      #   with:
+      #     command: get-order
+      #     chain: ethereum
+      #     order-id: ${{ fromJSON(steps.submit.outputs.result).orderId }}
 
-      # 4. Get trades for the order
-      - uses: w3-io/w3-cowswap-action@main
-        id: get-trades
-        with:
-          command: get-trades
-          chain: ethereum
-          order-id: ${{ fromJSON(steps.submit.outputs.result).orderId }}
+      # SKIP: requires funded wallet on Ethereum mainnet (depends on submit)
+      # - uses: w3-io/w3-cowswap-action@main
+      #   id: get-trades
+      #   with:
+      #     command: get-trades
+      #     chain: ethereum
+      #     order-id: ${{ fromJSON(steps.submit.outputs.result).orderId }}
 
-      # 5. Recovery: cancel the order to prevent fill and preserve funds
-      - uses: w3-io/w3-cowswap-action@main
-        id: cancel
-        env:
-          W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow: ["*"]
-        with:
-          command: cancel-order
-          chain: ethereum
-          order-id: ${{ fromJSON(steps.submit.outputs.result).orderId }}
+      # SKIP: requires funded wallet on Ethereum mainnet (depends on submit)
+      # - uses: w3-io/w3-cowswap-action@main
+      #   id: cancel
+      #   env:
+      #     W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
+      #   bridge-allow: ["*"]
+      #   with:
+      #     command: cancel-order
+      #     chain: ethereum
+      #     order-id: ${{ fromJSON(steps.submit.outputs.result).orderId }}
 
       - run: |
-          echo "=== Submit ==="
-          echo "${{ steps.submit.outputs.result }}"
-          echo "=== Get Order ==="
-          echo "${{ steps.get-order.outputs.result }}"
-          echo "=== Get Trades ==="
-          echo "${{ steps.get-trades.outputs.result }}"
-          echo "=== Cancel (Recovery) ==="
-          echo "${{ steps.cancel.outputs.result }}"
+          echo "=== Order flow skipped (requires funded wallet) ==="
 
   # ── Write flow: limit-order -> cancel-order ─────────────────────
   limit-cancel:
