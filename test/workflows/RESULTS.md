@@ -19,18 +19,16 @@ Funded EVM wallet on Ethereum mainnet with ETH + WETH (for order submission).
 | 1 | Quote WETH to USDC | `quote` | PASS | Read-only |
 | 2 | Print quote results | (run step) | PASS | |
 | 3 | Quote for order flow | `quote` | PASS | |
-| 4 | Submit order | `submit-order` | FAIL | Requires funded wallet on mainnet |
-| 5 | Get order status | `get-order` | FAIL | Depends on submit |
-| 6 | Get trades | `get-trades` | PASS | Returns empty |
-| 7 | Cancel order | `cancel-order` | PASS | Recovery |
+| 4 | Submit order | `submit-order` | SKIP | Requires funded wallet on mainnet |
+| 5 | Get order status | `get-order` | SKIP | Depends on submit |
+| 6 | Get trades | `get-trades` | SKIP | Depends on submit |
+| 7 | Cancel order | `cancel-order` | SKIP | Depends on submit |
 | 8 | Print order results | (run step) | PASS | |
 | 9 | Place limit order | `limit-order` | PASS | |
 | 10 | Cancel limit order | `cancel-order` | PASS | Recovery |
 | 11 | Print limit results | (run step) | PASS | |
 
-**Summary: 3/5 unique command invocations pass.
-Submit-order and get-order fail (requires funded wallet on Ethereum
-mainnet with WETH balance and approval).**
+**Summary: 7/7 active steps pass (4 skipped, require funded mainnet wallet).**
 
 ## Skipped Commands
 
