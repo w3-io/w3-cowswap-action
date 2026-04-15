@@ -54,8 +54,7 @@ jobs:
         id: submit
         env:
           W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow:
-          - ethereum/sign-message
+        bridge-allow: ["*"]
         with:
           command: submit-order
           chain: ethereum
@@ -83,8 +82,7 @@ jobs:
         id: cancel
         env:
           W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow:
-          - ethereum/sign-message
+        bridge-allow: ["*"]
         with:
           command: cancel-order
           chain: ethereum
@@ -109,8 +107,7 @@ jobs:
         id: limit
         env:
           W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow:
-          - ethereum/sign-message
+        bridge-allow: ["*"]
         with:
           command: limit-order
           chain: ethereum
@@ -126,8 +123,7 @@ jobs:
         id: cancel
         env:
           W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow:
-          - ethereum/sign-message
+        bridge-allow: ["*"]
         with:
           command: cancel-order
           chain: ethereum
