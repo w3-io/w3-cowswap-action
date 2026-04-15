@@ -1,0 +1,125 @@
+# E2E Test Workflow
+#
+# Exercises every command against real APIs/contracts.
+# Run on a local W3 network with:
+#   w3 workflow deploy test/workflows/e2e.yaml
+#   w3 workflow "CoW Swap E2E" trigger
+#
+# Prerequisites:
+#   - W3 local network running (make dev)
+#   - W3_SECRET_ETHEREUM (bridge signer with ETH + tokens on Ethereum mainnet)
+
+name: CoW Swap E2E
+on:
+  workflow_dispatch: {}
+
+jobs:
+  # ── Read-only: quote ────────────────────────────────────────────
+  quote:
+    runs-on: ubuntu-latest
+    steps:
+      # Quote: sell 0.001 WETH for USDC on Ethereum
+      - uses: w3-io/w3-cowswap-action@main
+        id: quote
+        with:
+          command: quote
+          chain: ethereum
+          sell-token: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+          buy-token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+          amount: '1000000000000000'
+          from: '0xe4E402962943c4EB2253f666575eE12700e78e90'
+
+      - run: |
+          echo "=== Quote ==="
+          echo "${{ steps.quote.outputs.result }}"
+
+  # ── Write flow: submit-order -> get-order -> get-trades ─────────
+  order-flow:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Get a quote first
+      - uses: w3-io/w3-cowswap-action@main
+        id: quote
+        with:
+          command: quote
+          chain: ethereum
+          sell-token: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+          buy-token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+          amount: '1000000000000000'
+          from: '0xe4E402962943c4EB2253f666575eE12700e78e90'
+
+      # 2. Submit the order (requires funded wallet)
+      - uses: w3-io/w3-cowswap-action@main
+        id: submit
+        env:
+          W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
+        bridge-allow:
+          - ethereum/sign-message
+        with:
+          command: submit-order
+          chain: ethereum
+          quote: ${{ steps.quote.outputs.result }}
+          from: '0xe4E402962943c4EB2253f666575eE12700e78e90'
+
+      # 3. Get order status
+      - uses: w3-io/w3-cowswap-action@main
+        id: get-order
+        with:
+          command: get-order
+          chain: ethereum
+          order-id: ${{ fromJSON(steps.submit.outputs.result).orderId }}
+
+      # 4. Get trades for the order
+      - uses: w3-io/w3-cowswap-action@main
+        id: get-trades
+        with:
+          command: get-trades
+          chain: ethereum
+          order-id: ${{ fromJSON(steps.submit.outputs.result).orderId }}
+
+      - run: |
+          echo "=== Submit ==="
+          echo "${{ steps.submit.outputs.result }}"
+          echo "=== Get Order ==="
+          echo "${{ steps.get-order.outputs.result }}"
+          echo "=== Get Trades ==="
+          echo "${{ steps.get-trades.outputs.result }}"
+
+  # ── Write flow: limit-order -> cancel-order ─────────────────────
+  limit-cancel:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Place a limit order (sell 0.001 WETH for min 1 USDC)
+      - uses: w3-io/w3-cowswap-action@main
+        id: limit
+        env:
+          W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
+        bridge-allow:
+          - ethereum/sign-message
+        with:
+          command: limit-order
+          chain: ethereum
+          sell-token: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+          buy-token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+          amount: '1000000000000000'
+          buy-amount: '1000000'
+          from: '0xe4E402962943c4EB2253f666575eE12700e78e90'
+          valid-for: '3600'
+
+      # 2. Cancel the limit order
+      - uses: w3-io/w3-cowswap-action@main
+        id: cancel
+        env:
+          W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
+        bridge-allow:
+          - ethereum/sign-message
+        with:
+          command: cancel-order
+          chain: ethereum
+          order-id: ${{ fromJSON(steps.limit.outputs.result).orderId }}
+
+      - run: |
+          echo "=== Limit Order ==="
+          echo "${{ steps.limit.outputs.result }}"
+          echo "=== Cancel ==="
+          echo "${{ steps.cancel.outputs.result }}"
