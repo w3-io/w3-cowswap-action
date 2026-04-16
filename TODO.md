@@ -25,5 +25,5 @@ The action covers CoW Protocol's full order lifecycle: quote, sign
 
 - [ ] `docs/guide.md` covers the single-step swap happy path but
       doesn't walk through the `getQuote → signOrder → submitOrder →
-  waitForFill` pattern for reusable workflow authors. Add a
+waitForFill` pattern for reusable workflow authors. Add a
       worked example using the chain-step outputs pattern.

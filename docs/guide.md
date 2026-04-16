@@ -229,6 +229,107 @@ Order UID (string) for tracking the submitted order.
     echo "Order UID: ${{ steps.limit.outputs.result }}"
 ```
 
+## Multi-Step Workflow Pattern
+
+Individual commands compose into a full order lifecycle: get a quote,
+submit the signed order, poll for settlement, then read the fill
+details. Each step passes its output to the next via
+`steps.<id>.outputs.result`.
+
+```yaml
+name: CoW Swap — quote, submit, track
+
+on:
+  workflow_dispatch:
+    inputs:
+      sell-amount:
+        description: 'USDC amount in base units (6 decimals)'
+        required: true
+        default: '1000000000' # 1000 USDC
+
+env:
+  CHAIN: ethereum
+  USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+  SENDER: '0xYourAddress'
+
+jobs:
+  swap:
+    runs-on: ubuntu-latest
+    steps:
+      # ── 1. Quote ───────────────────────────────────────────
+      # Ask CoW solvers for the best execution price.
+      # No signer needed — this is a read-only API call.
+      - id: get-quote
+        uses: w3-io/w3-cowswap-action@v0
+        with:
+          command: quote
+          chain: ${{ env.CHAIN }}
+          sell-token: ${{ env.USDC }}
+          buy-token: ${{ env.WETH }}
+          amount: ${{ inputs.sell-amount }}
+          from: ${{ env.SENDER }}
+
+      # Inspect the quote before committing funds.
+      - name: Log quote details
+        run: |
+          echo "Buy amount: ${{ fromJSON(steps.get-quote.outputs.result).quote.buyAmount }}"
+          echo "Fee: ${{ fromJSON(steps.get-quote.outputs.result).quote.feeAmount }}"
+
+      # ── 2. Submit ──────────────────────────────────────────
+      # Pass the full quote JSON to submit-order. The action
+      # signs the EIP-712 typed data via the W3 bridge, then
+      # POSTs the signed order to the CoW API.
+      # Requires bridge-allow and the chain signer secret.
+      - id: submit
+        uses: w3-io/w3-cowswap-action@v0
+        with:
+          command: submit-order
+          chain: ${{ env.CHAIN }}
+          quote: ${{ steps.get-quote.outputs.result }}
+          bridge-allow: ethereum
+        env:
+          W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
+
+      # ── 3. Poll status ────────────────────────────────────
+      # CoW orders settle in the next solver batch (≈15 s on
+      # mainnet). Poll get-order until status is "fulfilled".
+      - id: order-status
+        uses: w3-io/w3-cowswap-action@v0
+        with:
+          command: get-order
+          chain: ${{ env.CHAIN }}
+          order-id: ${{ steps.submit.outputs.result }}
+
+      - name: Check settlement
+        run: |
+          STATUS="${{ fromJSON(steps.order-status.outputs.result).status }}"
+          echo "Order status: $STATUS"
+          if [ "$STATUS" != "fulfilled" ]; then
+            echo "::warning::Order not yet filled — status is $STATUS"
+          fi
+
+      # ── 4. Read fill details ──────────────────────────────
+      # Once filled, get-trades returns the on-chain execution
+      # including the actual amounts, tx hash, and block.
+      - id: trades
+        uses: w3-io/w3-cowswap-action@v0
+        with:
+          command: get-trades
+          chain: ${{ env.CHAIN }}
+          order-id: ${{ steps.submit.outputs.result }}
+
+      - name: Report execution
+        run: |
+          echo "Trades: ${{ steps.trades.outputs.result }}"
+```
+
+**Key points:**
+
+- **Step references** — `submit-order` receives the raw `steps.get-quote.outputs.result` string. The action parses it internally; no `fromJSON` wrapper needed in the `with:` block.
+- **Signer access** — Only `submit-order` and `cancel-order` require `bridge-allow` and `W3_SECRET_ETHEREUM`. Read-only commands (`quote`, `get-order`, `get-trades`) work without credentials.
+- **Polling** — CoW batches settle roughly every 15 seconds on mainnet. For production workflows, wrap `get-order` in a retry loop or use a matrix strategy with a delay before checking status.
+
 ## Error Codes
 
 | Code                  | Meaning                             |
