@@ -58,7 +58,7 @@ jobs:
       - name: Approve WETH for GPv2Settlement
         env:
           W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow: ["*"]
+        bridge-allow: ['*']
         run: |
           B="${W3_BRIDGE_URL}"
           curl -sf $B/ethereum/approve-token \
@@ -70,7 +70,7 @@ jobs:
         id: submit
         env:
           W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow: ["*"]
+        bridge-allow: ['*']
         with:
           command: submit-order
           chain: base
@@ -111,7 +111,7 @@ jobs:
       - name: Approve WETH for GPv2Settlement
         env:
           W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow: ["*"]
+        bridge-allow: ['*']
         run: |
           B="${W3_BRIDGE_URL}"
           curl -sf $B/ethereum/approve-token \
@@ -123,7 +123,7 @@ jobs:
         id: limit
         env:
           W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow: ["*"]
+        bridge-allow: ['*']
         with:
           command: limit-order
           chain: base
@@ -139,7 +139,7 @@ jobs:
         id: cancel
         env:
           W3_SECRET_ETHEREUM: ${{ secrets.W3_SECRET_ETHEREUM }}
-        bridge-allow: ["*"]
+        bridge-allow: ['*']
         with:
           command: cancel-order
           chain: base
