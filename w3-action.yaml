@@ -3,6 +3,21 @@ partner: cowswap
 name: CoW Swap Integration
 version: 0.1.0
 repo: w3-io/w3-cowswap-action
+description: >
+  CoW Swap is a MEV-protected DEX aggregator that uses batch auctions for
+  optimal pricing. Orders are signed off-chain via EIP-712 and only executed
+  if the price is met. MEV protection means no frontrunning or sandwich
+  attacks. Orders are gasless — the protocol pays gas from solver
+  competition. If solvers find a better price than quoted, the surplus goes
+  back to the user.
+context: >
+  Use for protecting large trades from MEV, or when you want gasless swaps
+  with surplus sharing. Not for instant execution — CoW batches orders into
+  discrete auctions (~30 s), so use Uniswap if you need immediate fills. No
+  swap fees for market orders; the protocol earns from solver competition.
+  Orders are signed off-chain and only executed if the price condition is
+  met, so funds stay safe. Requires a W3 bridge signer for EIP-712 signing.
+  Typical pattern: quote → submit-order → get-order (poll for fill).
 
 commands:
   - name: quote
